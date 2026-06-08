@@ -2,7 +2,7 @@
 
 namespace ColorSpaceComparisons.Core;
 
-public static class Illuminants
+public static class WhitePoints
 {
     public static CIExy D50 => new(0.34567f, 0.35850f);
     public static CIExy D55 => new(0.33242f, 0.34743f);

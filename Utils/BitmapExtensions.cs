@@ -1,39 +1,56 @@
-﻿using ColorSpaceComparisons.Core.ColorTypes;
+﻿using ColorSpaceComparisons.Core;
+using ColorSpaceComparisons.Core.ColorTypes;
 using SkiaSharp;
 
 namespace ColorSpaceComparisons.Utils;
 
 public static class BitmapExtensions
 {
-    public static RGBA ReadPixel(this SKBitmap bitmap, int x, int y)
+    public static void ApplyOETF(this Bitmap bitmap, ColorSpace colorSpace)
     {
-        BitmapUtils.CheckPixelCoordinates(bitmap, x, y);
-
-        unsafe
+        var pixels = bitmap.Pixels;
+        for (var i = 0; i < pixels.Length; ++i)
         {
-            var pixelPtr = (float*)bitmap.GetPixels().ToPointer();
-            var offset = 4 * (bitmap.Width * y + x);
-            return new(
-                pixelPtr[offset],
-                pixelPtr[offset + 1],
-                pixelPtr[offset + 2],
-                pixelPtr[offset + 3]
-            );
+            var color = pixels[i];
+            var rgb = colorSpace.ConvertLinearToSignalRGB(color.ToRGB());
+            pixels[i] = rgb.ToRGBA(color.A);
         }
     }
 
-    public static void WritePixel(this SKBitmap bitmap, int x, int y, RGBA color)
+    public static void ConvertColors(this Bitmap bitmap, IColorSpaceConverter converter)
     {
-        BitmapUtils.CheckPixelCoordinates(bitmap, x, y);
+        var pixels = bitmap.Pixels;
+        for (var i = 0; i < pixels.Length; ++i)
+        {
+            var color = pixels[i];
+            pixels[i] = converter.Convert(color.ToRGB()).ToRGBA(color.A);
+        }
+    }
+
+    public static SKBitmap ToSKBitmap(this Bitmap bitmap)
+    {
+        var result = new SKBitmap(
+            bitmap.Width,
+            bitmap.Height,
+            SKColorType.RgbaF32,
+            SKAlphaType.Unpremul,
+            // Just save as sRGB for simplicity
+            // Use software such as GIMP to assign a new color profile to the saved image
+            SKColorSpace.CreateSrgb()
+        );
 
         unsafe
         {
-            var pixelPtr = (float*)bitmap.GetPixels().ToPointer();
-            var offset = 4 * (bitmap.Width * y + x);
-            pixelPtr[offset] = color.R;
-            pixelPtr[offset + 1] = color.G;
-            pixelPtr[offset + 2] = color.B;
-            pixelPtr[offset + 3] = color.A;
+            var pixelPtr = (float*)result.GetPixels().ToPointer();
+            foreach (var color in bitmap.Pixels)
+            {
+                (*pixelPtr++) = color.R;
+                (*pixelPtr++) = color.G;
+                (*pixelPtr++) = color.B;
+                (*pixelPtr++) = color.A;
+            }
         }
+
+        return result;
     }
 }

@@ -6,19 +6,20 @@ namespace ColorSpaceComparisons.Core;
 
 public abstract class ColorSpace
 {
-    // Illuminant, white point, and primaries before chromatic adaptation
-    public CIExy Illuminant { get; private set; }
+    // White point and primaries before chromatic adaptation
     public CIExy WhitePoint { get; private init; }
     public CIExy RedPrimary { get; private init; }
     public CIExy GreenPrimary { get; private init; }
     public CIExy BluePrimary { get; private init; }
 
     // Illuminant, white point, and primaries after chromatic adaptation
-    public CIEXYZ ActiveIlluminant { get; private set; }
+    public CIExy AdaptedWhitePoint { get; private set; }
     public CIEXYZ WhiteXYZ { get; private set; }
     public CIEXYZ RedXYZ { get; private set; }
     public CIEXYZ GreenXYZ { get; private set; }
     public CIEXYZ BlueXYZ { get; private set; }
+
+    public bool UsingOriginalWhitePoint => AdaptedWhitePoint == WhitePoint;
 
     public Matrix4x4 LinearRGBToXYZMatrix { get; private set; }
     public Matrix4x4 XYZToLinearRGBMatrix { get; private set; }
@@ -29,28 +30,18 @@ public abstract class ColorSpace
         CIExy greenPrimary,
         CIExy bluePrimary
     )
-        : this(whitePoint, whitePoint, redPrimary, greenPrimary, bluePrimary) { }
-
-    public ColorSpace(
-        CIExy illuminant,
-        CIExy whitePoint,
-        CIExy redPrimary,
-        CIExy greenPrimary,
-        CIExy bluePrimary
-    )
     {
-        Illuminant = illuminant;
         WhitePoint = whitePoint;
         RedPrimary = redPrimary;
         GreenPrimary = greenPrimary;
         BluePrimary = bluePrimary;
 
-        AdaptToIlluminant(Illuminant);
+        AdaptToWhitePoint(WhitePoint);
     }
 
-    public void AdaptToIlluminant(CIExy targetIlluminant)
+    public void AdaptToWhitePoint(CIExy targetWhitePoint)
     {
-        ActiveIlluminant = targetIlluminant.ToCIExyY(1f).ToCIEXYZ();
+        AdaptedWhitePoint = targetWhitePoint;
 
         WhiteXYZ = WhitePoint.ToCIExyY(1f).ToCIEXYZ();
 
@@ -68,12 +59,12 @@ public abstract class ColorSpace
         GreenXYZ = (greenBright.ToVector3() * weights.Y).ToCIEXYZ();
         BlueXYZ = (blueBright.ToVector3() * weights.Z).ToCIEXYZ();
 
-        if (targetIlluminant != Illuminant)
+        if (AdaptedWhitePoint != WhitePoint)
         {
             var chromaticAdaptationMatrix =
                 ChromaticAdaptation.CalculateChromaticAdaptationMatrix(
-                    Illuminant,
-                    targetIlluminant
+                    WhitePoint,
+                    AdaptedWhitePoint
                 );
 
             WhiteXYZ = Vector3

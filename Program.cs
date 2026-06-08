@@ -19,8 +19,8 @@ internal class Program
 
         GenerateColorRing(
             Path.Combine(saveDir, "Color Ring Display P3 vs sRGB.png"),
-            new sRGBColorSpace(),
             new DisplayP3ColorSpace(),
+            new sRGBColorSpace(),
             new DisplayP3ColorSpace(),
             2048,
             0.6f,
@@ -28,8 +28,8 @@ internal class Program
         );
         GenerateColorRing(
             Path.Combine(saveDir, "Color Ring Rec. 2020 vs sRGB.png"),
-            new sRGBColorSpace(),
             new Rec2020ColorSpace(),
+            new sRGBColorSpace(),
             new Rec2020ColorSpace(),
             2048,
             0.6f,
@@ -37,8 +37,8 @@ internal class Program
         );
         GenerateColorRing(
             Path.Combine(saveDir, "Color Ring Rec. 2020 vs Display P3.png"),
-            new DisplayP3ColorSpace(),
             new Rec2020ColorSpace(),
+            new DisplayP3ColorSpace(),
             new Rec2020ColorSpace(),
             2048,
             0.6f,
@@ -47,8 +47,8 @@ internal class Program
 
         GenerateColorRing(
             Path.Combine(saveDir, "Color Ring SDC4197 vs CMN15F5.png"),
-            new CMN15F5ColorSpace(),
             new SDC4197ColorSpace(),
+            new CMN15F5ColorSpace(),
             new SDC4197ColorSpace(),
             2048,
             0.6f,
@@ -56,8 +56,8 @@ internal class Program
         );
         GenerateColorRing(
             Path.Combine(saveDir, "Color Ring SDC4197 vs sRGB.png"),
-            new sRGBColorSpace(),
             new SDC4197ColorSpace(),
+            new sRGBColorSpace(),
             new SDC4197ColorSpace(),
             2048,
             0.6f,
@@ -65,8 +65,8 @@ internal class Program
         );
         GenerateColorRing(
             Path.Combine(saveDir, "Color Ring SDC4197 vs Display P3.png"),
-            new DisplayP3ColorSpace(),
             new SDC4197ColorSpace(),
+            new DisplayP3ColorSpace(),
             new SDC4197ColorSpace(),
             2048,
             0.6f,
@@ -76,8 +76,8 @@ internal class Program
 
     public static void GenerateColorRing(
         string savePath,
-        SDRColorSpace bgColorSpace,
         SDRColorSpace ringColorSpace,
+        SDRColorSpace bgColorSpace,
         SDRColorSpace imageColorSpace,
         int size,
         float innerRingRadius,
@@ -87,8 +87,8 @@ internal class Program
     {
         if (applyChromaticAdaptation)
         {
-            bgColorSpace.AdaptToIlluminant(imageColorSpace.Illuminant);
-            ringColorSpace.AdaptToIlluminant(imageColorSpace.Illuminant);
+            ringColorSpace.AdaptToWhitePoint(imageColorSpace.WhitePoint);
+            bgColorSpace.AdaptToWhitePoint(imageColorSpace.WhitePoint);
         }
 
         var scale = size / 2f;
@@ -104,18 +104,10 @@ internal class Program
             ringColorSpace
         );
 
-        using var bitmap = new SKBitmap(
-            size,
-            size,
-            SKColorType.RgbaF32,
-            SKAlphaType.Premul,
-            // Just save as sRGB for simplicity
-            // Use software such as GIMP to assign a new color profile to the saved image
-            SKColorSpace.CreateSrgb()
-        );
+        var bitmap = new Bitmap(size, size);
 
-        bitmap.SetPixel(0, 0, new SKColor(200, 100, 50, 25));
-
+        var pixels = bitmap.Pixels;
+        var i = 0;
         for (var y = 0; y < size; ++y)
         {
             var v = 1f - (y + 0.5f) / size * 2f;
@@ -143,7 +135,7 @@ internal class Program
 
                 color = Vector3.Lerp(bgColor.ToVector3(), color.ToVector3(), mix).ToRGB();
 
-                bitmap.WritePixel(x, y, color.ToRGBA());
+                pixels[i++] = color.ToRGBA();
             }
         }
 
@@ -153,28 +145,18 @@ internal class Program
                 ringColorSpace,
                 imageColorSpace
             );
-
-            for (var y = 0; y < size; ++y)
-            {
-                for (var x = 0; x < size; ++x)
-                {
-                    bitmap.WritePixel(
-                        x,
-                        y,
-                        converterRingToImage
-                            .Convert(bitmap.ReadPixel(x, y).ToRGB())
-                            .ToRGBA()
-                    );
-                }
-            }
+            bitmap.ConvertColors(converterRingToImage);
         }
 
         BitmapUtils.NormalizeBrightness(bitmap);
-        BitmapUtils.ApplyOetf(bitmap, ringColorSpace);
+        bitmap.ApplyOETF(imageColorSpace);
 
-        using var image = SKImage.FromBitmap(bitmap);
+        using var skBitmap = bitmap.ToSKBitmap();
+        using var image = SKImage.FromBitmap(skBitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         using var stream = File.OpenWrite(savePath);
         data.SaveTo(stream);
+
+        Console.WriteLine($"Saved to {savePath}");
     }
 }

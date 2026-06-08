@@ -22,25 +22,25 @@ public static class ChromaticAdaptation
     );
 
     public static Matrix4x4 CalculateChromaticAdaptationMatrix(
-        CIExy sourceIlluminant,
-        CIExy destinationIlluminant
+        CIExy sourceWhitePoint,
+        CIExy destinationWhitePoint
     ) =>
         CalculateChromaticAdaptationMatrix(
-            sourceIlluminant.ToCIExyY(1f).ToCIEXYZ(),
-            destinationIlluminant.ToCIExyY(1f).ToCIEXYZ()
+            sourceWhitePoint.ToCIExyY(1f).ToCIEXYZ(),
+            destinationWhitePoint.ToCIExyY(1f).ToCIEXYZ()
         );
 
     public static Matrix4x4 CalculateChromaticAdaptationMatrix(
-        CIEXYZ sourceIlluminant,
-        CIEXYZ destinationIlluminant
+        CIEXYZ sourceWhitePoint,
+        CIEXYZ destinationWhitePoint
     )
     {
         var sourceIlluminantTransformed = Vector3.Transform(
-            sourceIlluminant.ToVector3(),
+            sourceWhitePoint.ToVector3(),
             _bradfordMatrix
         );
         var destinationIlluminantTransformed = Vector3.Transform(
-            destinationIlluminant.ToVector3(),
+            destinationWhitePoint.ToVector3(),
             _bradfordMatrix
         );
 
