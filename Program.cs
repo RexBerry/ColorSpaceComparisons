@@ -17,8 +17,8 @@ internal class Program
             "Color Space Comparisons"
         );
 
-        GenerateColorWheel(
-            Path.Combine(saveDir, "Ring sRGB vs Display P3.png"),
+        GenerateColorRing(
+            Path.Combine(saveDir, "Color Ring Display P3 vs sRGB.png"),
             new sRGBColorSpace(),
             new DisplayP3ColorSpace(),
             new DisplayP3ColorSpace(),
@@ -26,8 +26,8 @@ internal class Program
             0.6f,
             0.8f
         );
-        GenerateColorWheel(
-            Path.Combine(saveDir, "Ring sRGB vs Rec. 2020.png"),
+        GenerateColorRing(
+            Path.Combine(saveDir, "Color Ring Rec. 2020 vs sRGB.png"),
             new sRGBColorSpace(),
             new Rec2020ColorSpace(),
             new Rec2020ColorSpace(),
@@ -35,8 +35,8 @@ internal class Program
             0.6f,
             0.8f
         );
-        GenerateColorWheel(
-            Path.Combine(saveDir, "Ring Display P3 vs Rec. 2020.png"),
+        GenerateColorRing(
+            Path.Combine(saveDir, "Color Ring Rec. 2020 vs Display P3.png"),
             new DisplayP3ColorSpace(),
             new Rec2020ColorSpace(),
             new Rec2020ColorSpace(),
@@ -45,8 +45,8 @@ internal class Program
             0.8f
         );
 
-        GenerateColorWheel(
-            Path.Combine(saveDir, "Ring CMN15F5 vs SDC4197.png"),
+        GenerateColorRing(
+            Path.Combine(saveDir, "Color Ring SDC4197 vs CMN15F5.png"),
             new CMN15F5ColorSpace(),
             new SDC4197ColorSpace(),
             new SDC4197ColorSpace(),
@@ -54,8 +54,8 @@ internal class Program
             0.6f,
             0.8f
         );
-        GenerateColorWheel(
-            Path.Combine(saveDir, "Ring sRGB vs SDC4197.png"),
+        GenerateColorRing(
+            Path.Combine(saveDir, "Color Ring SDC4197 vs sRGB.png"),
             new sRGBColorSpace(),
             new SDC4197ColorSpace(),
             new SDC4197ColorSpace(),
@@ -63,8 +63,8 @@ internal class Program
             0.6f,
             0.8f
         );
-        GenerateColorWheel(
-            Path.Combine(saveDir, "Ring Display P3 vs SDC4197.png"),
+        GenerateColorRing(
+            Path.Combine(saveDir, "Color Ring SDC4197 vs Display P3.png"),
             new DisplayP3ColorSpace(),
             new SDC4197ColorSpace(),
             new SDC4197ColorSpace(),
@@ -74,7 +74,7 @@ internal class Program
         );
     }
 
-    public static void GenerateColorWheel(
+    public static void GenerateColorRing(
         string savePath,
         SDRColorSpace bgColorSpace,
         SDRColorSpace ringColorSpace,
