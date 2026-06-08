@@ -4,7 +4,7 @@ namespace ColorSpaceComparisons.Utils;
 
 public static class BitmapUtils
 {
-    public static void NormalizeBrightness(Bitmap bitmap)
+    public static void NormalizeBrightness(Bitmap bitmap, float brightness = 1f)
     {
         var maxLevel = 0f;
         foreach (var color in bitmap.Pixels)
@@ -14,7 +14,7 @@ public static class BitmapUtils
             maxLevel = Math.Max(maxLevel, color.B);
         }
 
-        var mult = maxLevel == 0f ? 1f : 1f / maxLevel;
+        var mult = maxLevel == 0f ? brightness : brightness / maxLevel;
         var pixels = bitmap.Pixels;
         for (var i = 0; i < pixels.Length; ++i)
         {

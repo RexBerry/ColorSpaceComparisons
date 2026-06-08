@@ -21,10 +21,11 @@ public abstract class ColorSpace
 
     public bool UsingOriginalWhitePoint => AdaptedWhitePoint == WhitePoint;
 
+    public Vector3 LuminanceWeightsRGB { get; private set; }
     public Matrix4x4 LinearRGBToXYZMatrix { get; private set; }
     public Matrix4x4 XYZToLinearRGBMatrix { get; private set; }
 
-    public ColorSpace(
+    protected ColorSpace(
         CIExy whitePoint,
         CIExy redPrimary,
         CIExy greenPrimary,
@@ -36,10 +37,10 @@ public abstract class ColorSpace
         GreenPrimary = greenPrimary;
         BluePrimary = bluePrimary;
 
-        AdaptToWhitePoint(WhitePoint);
+        ApplyChromaticAdaptation(WhitePoint);
     }
 
-    public void AdaptToWhitePoint(CIExy targetWhitePoint)
+    public void ApplyChromaticAdaptation(CIExy targetWhitePoint)
     {
         AdaptedWhitePoint = targetWhitePoint;
 
@@ -90,9 +91,13 @@ public abstract class ColorSpace
             throw new Exception("Singular matrix.");
         }
 
+        LuminanceWeightsRGB = new(RedXYZ.Y, GreenXYZ.Y, BlueXYZ.Y);
         LinearRGBToXYZMatrix = rgbToXyzMatrix;
         XYZToLinearRGBMatrix = xyzToRgbMatrix;
     }
+
+    public float CalculateLuminance(RGB linearRGB) =>
+        Vector3.Dot(linearRGB.ToVector3(), LuminanceWeightsRGB);
 
     public CIEXYZ ConvertLinearRGBToXYZ(RGB linearRGB) =>
         Vector3.Transform(linearRGB.ToVector3(), LinearRGBToXYZMatrix).ToCIEXYZ();

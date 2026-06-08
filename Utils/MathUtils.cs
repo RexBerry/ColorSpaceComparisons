@@ -2,6 +2,8 @@
 
 public static class MathUtils
 {
+    public static float Lerp(float x, float y, float t) => (1f - t) * x + t * y;
+
     public static float Hypot(float x, float y)
     {
         x = MathF.Abs(x);

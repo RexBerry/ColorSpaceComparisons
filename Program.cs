@@ -3,6 +3,7 @@ using ColorSpaceComparisons.Core;
 using ColorSpaceComparisons.Core.ColorSpaceConverters;
 using ColorSpaceComparisons.Core.ColorSpaces;
 using ColorSpaceComparisons.Core.ColorTypes;
+using ColorSpaceComparisons.Core.StandardIlluminants;
 using ColorSpaceComparisons.Utils;
 using SkiaSharp;
 
@@ -17,7 +18,53 @@ internal class Program
             "Color Space Comparisons"
         );
 
-        GenerateColorRing(
+        GenerateRainbows(saveDir);
+        GenerateColorRings(saveDir);
+    }
+
+    private static void GenerateRainbows(string saveDir)
+    {
+        SaveRainbow(
+            Path.Combine(saveDir, "Rainbow sRGB D65.png"),
+            new sRGBColorSpace(),
+            new IlluminantD65(),
+            2048,
+            256,
+            400f,
+            700f
+        );
+        SaveRainbow(
+            Path.Combine(saveDir, "Rainbow Display P3 D65.png"),
+            new DisplayP3ColorSpace(),
+            new IlluminantD65(),
+            2048,
+            256,
+            400f,
+            700f
+        );
+        SaveRainbow(
+            Path.Combine(saveDir, "Rainbow SDC4197 D65.png"),
+            new SDC4197ColorSpace(),
+            new IlluminantD65(),
+            2048,
+            256,
+            400f,
+            700f
+        );
+        SaveRainbow(
+            Path.Combine(saveDir, "Rainbow Rec. 2020 D65.png"),
+            new Rec2020ColorSpace(),
+            new IlluminantD65(),
+            2048,
+            256,
+            400f,
+            700f
+        );
+    }
+
+    private static void GenerateColorRings(string saveDir)
+    {
+        SaveColorRing(
             Path.Combine(saveDir, "Color Ring Display P3 vs sRGB.png"),
             new DisplayP3ColorSpace(),
             new sRGBColorSpace(),
@@ -26,7 +73,7 @@ internal class Program
             0.6f,
             0.8f
         );
-        GenerateColorRing(
+        SaveColorRing(
             Path.Combine(saveDir, "Color Ring Rec. 2020 vs sRGB.png"),
             new Rec2020ColorSpace(),
             new sRGBColorSpace(),
@@ -35,7 +82,7 @@ internal class Program
             0.6f,
             0.8f
         );
-        GenerateColorRing(
+        SaveColorRing(
             Path.Combine(saveDir, "Color Ring Rec. 2020 vs Display P3.png"),
             new Rec2020ColorSpace(),
             new DisplayP3ColorSpace(),
@@ -45,7 +92,7 @@ internal class Program
             0.8f
         );
 
-        GenerateColorRing(
+        SaveColorRing(
             Path.Combine(saveDir, "Color Ring SDC4197 vs CMN15F5.png"),
             new SDC4197ColorSpace(),
             new CMN15F5ColorSpace(),
@@ -54,7 +101,7 @@ internal class Program
             0.6f,
             0.8f
         );
-        GenerateColorRing(
+        SaveColorRing(
             Path.Combine(saveDir, "Color Ring SDC4197 vs sRGB.png"),
             new SDC4197ColorSpace(),
             new sRGBColorSpace(),
@@ -63,7 +110,7 @@ internal class Program
             0.6f,
             0.8f
         );
-        GenerateColorRing(
+        SaveColorRing(
             Path.Combine(saveDir, "Color Ring SDC4197 vs Display P3.png"),
             new SDC4197ColorSpace(),
             new DisplayP3ColorSpace(),
@@ -74,7 +121,55 @@ internal class Program
         );
     }
 
-    public static void GenerateColorRing(
+    public static void SaveRainbow(
+        string savePath,
+        SDRColorSpace colorSpace,
+        Illuminant illuminant,
+        int width,
+        int height,
+        float leftWavelength,
+        float rightWavelength,
+        bool applyChromaticAdaptation = true
+    )
+    {
+        if (applyChromaticAdaptation)
+        {
+            colorSpace.ApplyChromaticAdaptation(illuminant.WhitePoint);
+        }
+
+        var cie1931 = new CIE1931();
+        var converter = new ClippingCIExyColorSpaceConverter(colorSpace, colorSpace);
+
+        var bitmap = new Bitmap(width, height);
+        var pixels = bitmap.Pixels;
+        for (var x = 0; x < width; ++x)
+        {
+            var wavelength = MathUtils.Lerp(
+                leftWavelength,
+                rightWavelength,
+                (x + 0.5f) / width
+            );
+
+            var xyz = (
+                cie1931.CMF(wavelength).ToVector3() * illuminant.GetPower(wavelength)
+            ).ToCIEXYZ();
+            var rgb = converter.Convert(xyz, illuminant.WhitePoint, true);
+
+            var color = rgb.ToRGBA(1f);
+
+            for (var i = x; i < pixels.Length; i += width)
+            {
+                pixels[i] = color;
+            }
+        }
+
+        BitmapUtils.NormalizeBrightness(bitmap);
+        bitmap.ApplyOETF(colorSpace);
+
+        SaveBitmap(bitmap, savePath);
+    }
+
+    public static void SaveColorRing(
         string savePath,
         SDRColorSpace ringColorSpace,
         SDRColorSpace bgColorSpace,
@@ -87,8 +182,8 @@ internal class Program
     {
         if (applyChromaticAdaptation)
         {
-            ringColorSpace.AdaptToWhitePoint(imageColorSpace.WhitePoint);
-            bgColorSpace.AdaptToWhitePoint(imageColorSpace.WhitePoint);
+            ringColorSpace.ApplyChromaticAdaptation(imageColorSpace.WhitePoint);
+            bgColorSpace.ApplyChromaticAdaptation(imageColorSpace.WhitePoint);
         }
 
         var scale = size / 2f;
@@ -151,6 +246,11 @@ internal class Program
         BitmapUtils.NormalizeBrightness(bitmap);
         bitmap.ApplyOETF(imageColorSpace);
 
+        SaveBitmap(bitmap, savePath);
+    }
+
+    private static void SaveBitmap(Bitmap bitmap, string savePath)
+    {
         using var skBitmap = bitmap.ToSKBitmap();
         using var image = SKImage.FromBitmap(skBitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
